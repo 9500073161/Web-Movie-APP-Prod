@@ -4,6 +4,7 @@ import (
 	"backend/internal/handlers"
 	"backend/internal/jwt"
 	"backend/internal/repository/dbrepo"
+    "os"
 	"flag"
 	"fmt"
 	"log"
@@ -17,6 +18,13 @@ func main() {
 	// set application config
 	var app handlers.Application
 
+	// Use environment variable for DSN
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		log.Fatal("DATABASE_URL environment variable is required")
+	}
+	app.DSN = dsn
+
 	// read from command line
 	flag.StringVar(&app.DSN, "dsn", "host=localhost port=5432 user=postgres password=postgres dbname=movies sslmode=disable timezone=UTC connect_timeout=5", "Postgres connection string")
 	flag.StringVar(&app.JWTSecret, "jwt-secret", "verysecret", "signing secret")
@@ -28,14 +36,13 @@ func main() {
 	flag.Parse()
 
 	// connect to the database
+
 	conn, err := app.ConnectToDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	app.DB = &dbrepo.PostgresDBRepo{DB: conn}
 	defer app.DB.Connection().Close()
-
-	
 
 	app.Auth = jwt.Auth{
 		Issuer:        app.JWTIssuer,
